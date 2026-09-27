@@ -147,25 +147,36 @@ if current_user['role'] == "Admin":
             st.dataframe(emp_df.drop(columns=['password']), use_container_width=True)
             
         with tab2:
-            st.subheader("Add Employee Record")
-            with st.form("add_emp"):
-                e_id = st.text_input("Employee ID (Unique)")
-                e_name = st.text_input("Full Name")
-                e_email = st.text_input("Email")
-                e_pass = st.text_input("Password", type="password")
-                e_role = st.selectbox("Role", ["Employee", "Admin"])
-                e_iqama = st.text_input("Iqama Number (10 Digits)")
-                e_iqama_exp = st.date_input("Iqama Expiry Date")
-                e_gosi = st.text_input("GOSI Number")
-                e_job = st.text_input("Job Title")
-                e_salary = st.number_input("Basic Salary (SAR)", min_value=0.0)
-                
-                submitted = st.form_submit_button("Save Employee")
-                if submitted:
-                    execute_db("INSERT INTO employees VALUES (?,?,?,?,?,?,?,?,?,?)",
-                               (e_id, e_name, e_email, e_pass, e_role, e_iqama, e_iqama_exp, e_gosi, e_job, e_salary))
-                    st.success(f"Employee {e_name} added successfully!")
-                    send_email(e_email, "Welcome to HR Portal", f"Hello {e_name},\nYour account has been created.\nID: {e_id}\nPassword: {e_pass}")
+    st.subheader("Add Employee Record")
+    with st.form("add_emp"):
+        e_id = st.text_input("Employee ID (Unique)").strip()
+        e_name = st.text_input("Full Name").strip()
+        e_email = st.text_input("Email").strip()
+        e_pass = st.text_input("Password", type="password")
+        e_role = st.selectbox("Role", ["Employee", "Admin"])
+        e_iqama = st.text_input("Iqama Number (10 Digits)")
+        e_iqama_exp = st.date_input("Iqama Expiry Date")
+        e_gosi = st.text_input("GOSI Number")
+        e_job = st.text_input("Job Title")
+        e_salary = st.number_input("Basic Salary (SAR)", min_value=0.0)
+        
+        submitted = st.form_submit_button("Save Employee")
+        if submitted:
+            if not e_id or not e_name:
+                st.error("⚠️ Employee ID aur Name fill karna zaroori hai!")
+            else:
+                # Check agar ID pehle se majood toh nahi hai
+                existing = run_query("SELECT * FROM employees WHERE emp_id=?", (e_id,))
+                if not existing.empty:
+                    st.error(f"❌ Employee ID '{e_id}' pehle se majood hai! Kripya doosri ID chunein.")
+                else:
+                    try:
+                        execute_db("INSERT INTO employees VALUES (?,?,?,?,?,?,?,?,?,?)",
+                                   (e_id, e_name, e_email, e_pass, e_role, e_iqama, e_iqama_exp, e_gosi, e_job, e_salary))
+                        st.success(f"✅ Employee {e_name} successfully add ho gaya!")
+                        send_email(e_email, "Welcome to HR Portal", f"Hello {e_name},\nYour account has been created.\nID: {e_id}\nPassword: {e_pass}")
+                    except Exception as e:
+                        st.error(f"Error saving employee: {e}")
 
         with tab3:
             st.subheader("Modify or Delete Employee")
